@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025년 파골사 리그 순위</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <div class="navigation">
+        <div class="logo">72 골프회</div>
+        <div class="nav-links">
+            <a href="index.html">홈</a>
+            <a href="member-detail-score.html">회원별 기록</a>  
+            <a href="pargolsa-league.html">파골사 리그</a>
+            <a href="weekly-handicap-chart.html">12주 핸디캡</a>
+        </div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="main-container">
+        <h2>2025년 파골사 리그 월별 순위</h2>
+
+        <!-- 파골사 리그 페이지에 월 선택 드롭다운 추가 -->
+        <div class="month-selector">
+            <!--label for="monthSelect">월 선택:</label -->
+            <select id="monthSelect" class="month-select-style">
+                <option value="2025-01">2025년 1월</option>
+                <option value="2025-02">2025년 2월</option>
+                <option value="2025-03">2025년 3월</option>
+                <option value="2025-04">2025년 4월</option>
+                <option value="2025-05">2025년 5월</option>
+                <option value="2025-06">2025년 6월</option>
+                <option value="2025-07">2025년 7월</option>
+                <option value="2025-08">2025년 8월</option>
+                <option value="2025-09">2025년 9월</option>
+                <option value="2025-10">2025년 10월</option>
+                <option value="2025-11">2025년 11월</option>
+                <option value="2025-12">2025년 12월</option>
+            </select>
+        </div>
+
+        <div id="pargolsaChartInfoMessage" class="pargolsa-chart-info-message"></div>
+
+        <div id="pargolsaTop5ChartContainer">
+            <canvas id="pargolsaTop5Chart"></canvas>
+        </div>
+
+        <!-- 2025년 핸디 대비 월별 점수 평균 테이블 >
+        <h2>2025년 파골사 리그 월별 순위표</h2>
+        <div id="pargolsaInfoMessage" class="info-message"></div>
+        <table id="pargolsaRankingTable">
+            <thead>
+                <tr>
+                    <th rowspan="2">당월 순위</th>
+                    <th rowspan="2">회원</th>
+                    <th colspan="2">2025년 1월</th>
+                    <th colspan="2">2025년 2월</th>
+                    <th colspan="2">2025년 3월</th>
+                    <th colspan="2">2025년 4월</th>
+                    <th colspan="2">2025년 5월</th>
+                    <th colspan="2">2025년 6월</th>
+                    <th colspan="2">2025년 7월</th>
+                    <th colspan="2">2025년 8월</th>
+                    <th colspan="2">2025년 9월</th>
+                    <th colspan="2">2025년 10월</th>
+                    <th colspan="2">2025년 11월</th>
+                    <th colspan="2">2025년 12월</th>
+                </tr>
+                <tr>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                    <th>경기수</th>
+                    <th>점수 평균</th>
+                </tr>
+            </thead>
+            <tbody-->
+                <!-- 데이터가 여기에 채워짐 -->
+            <!--/tbody>
+        </table>
+    </div-->
+
+    <!-- 푸터 -->
+    <div class="footer">
+        <p>© 72회 골프 관리 시스템. All rights reserved.</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

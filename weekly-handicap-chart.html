@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 회원 12주 주간 핸디캡 챠트</title>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <div class="navigation">
+        <div class="logo">72 골프회</div>
+        <div class="nav-links">
+            <a href="index.html">홈</a>
+            <a href="member-detail-score.html">회원별 기록</a>  
+            <a href="pargolsa-league.html">파골사 리그</a>
+            <a href="weekly-handicap-chart.html">12주 핸디캡</a>
+            <a href="monthly-scores.html">월평균 기록</a>
+            <a href="view-scores.html">전체 경기 기록</a>
+        </div>
+    </div>
+
+    <!-- 메인 섹션 -->
+    <div class="main-container">
+        <h2>전체 회원의 최근 12주 핸디캡 변동 그래프</h2>
+        <!-- 그래프 섹션 -->
+        <div id="overallWeeklyHandicapChart"></div>
+        
+        <!-- 최신 핸디캡 랭킹 테이블 -->
+        <h2>최신 핸디캡 순위</h2>
+        <div class="table-container">
+            <table id="handicapRankingTable">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>회원명</th>
+                        <th>최신 핸디캡</th>
+                        <th>총 경기수 (Since 2024.1.1)</th>
+                        <th>최근 12주 경기수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 평균 점수 및 핸디캡이 여기에 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+
+    <!-- 푸터 -->
+    <div class="footer">
+        <p>© 72회 골프 관리 시스템. All rights reserved.</p>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>

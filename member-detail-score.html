@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원별 상세 정보</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="navigation">
+        <div class="logo">72 골프회</div>
+        <div class="nav-links">
+            <a href="index.html">홈</a>
+            <a href="member-detail-score.html">회원별 기록</a>  
+            <a href="pargolsa-league.html">파골사 리그</a>
+            <a href="weekly-handicap-chart.html">12주 핸디캡</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <h2>회원별 상세 정보</h2>
+
+        <!-- 회원 선택 및 최종 핸디캡 표시 -->
+        <div class="member-select-container">
+            <div class="member-select-label">
+                <label for="memberSelect">회원을 선택해 주세요</label>
+            </div>
+            <div class="member-select-input">
+                <select id="memberSelect">
+                    <option value="">회원 명단</option>
+                </select>
+            </div>
+            <div id="finalHandicapDisplay" class="final-handicap-circle">
+                <!-- 최종 핸디캡이 여기에 표시됩니다 -->
+            </div>
+        </div>
+        <!-- 최근 12주 핸디캡 변동 그래프 -->
+        <div id="memberWeeklyHandicapChart"></div>
+
+        <h2>경기 기록 상세 정보</h2>
+        <div id="handicapInfoMessage" class="info-message"></div>
+        <!-- 회원별 상세 정보 테이블 -->
+        <div class="table-container">
+            <table id="memberDetailsTable">
+                <thead>
+                    <tr>
+                        <th>경기 날짜</th>
+                        <th>골프장</th>
+                        <th>티박스</th>
+                        <th>Course Rating</th>
+                        <th>Slope Rating</th>
+                        <th>경기 점수</th>
+                        <th>Handicap Index</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 데이터가 여기에 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <div class="footer">
+        <p>© 72회 골프 관리 시스템. All rights reserved.</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

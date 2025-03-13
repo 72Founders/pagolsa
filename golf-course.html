@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골프장 등록</title>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <div class="navigation">
+        <div class="logo">골프 관리 시스템</div>
+        <div class="nav-links">
+            <a href="index.html">홈</a>
+            <a href="member-detail-score.html">회원별 기록</a>  
+            <a href="pargolsa-league.html">파골사 리그</a>
+            <a href="weekly-handicap-chart.html">12주 핸디캡</a>
+            <a href="monthly-scores.html">월평균 기록</a>
+            <a href="view-scores.html">전체 경기 기록</a>
+        </div>
+        <button id="logoutButton" class="logout-button">로그아웃</button>
+    </div>
+
+    <!-- 메인 섹션 -->
+    <div class="main-container">
+        <h1>-</h1>
+
+        <!-- 골프장 등록 폼 -->
+        <div class="form-card">
+            <h2>새 골프장 등록</h2>
+            <form id="golfCourseForm">
+                <div class="form-group">
+                    <label for="courseName">골프장 이름:</label>
+                    <input type="text" id="courseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="gender">코스/슬로프 레이팅 Gender:</label>
+                    <select id="gender" required>
+                        <option value="남성" selected>남성</option>
+                        <option value="여성">여성</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="teeBox">티박스 선택:</label>
+                    <select id="teeBox" required>
+                        <option value="Yellow">Yellow</option>
+                        <option value="White">White</option>
+                        <option value="Blue">Blue</option>
+                        <option value="Red">Red</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="courseRating">코스 레이팅:</label>
+                    <input type="number" id="courseRating" step="any" min="50" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="slopeRating">슬로프 레이팅:</label>
+                    <input type="number" id="slopeRating" min="100" max="150" required>
+                </div>
+                <div class="form-group">
+                    <label for="par">파(Par):</label>
+                    <input type="number" id="par" min="50" max="100" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">등록</button>
+                    <button type="button" id="editCourseButton" class="btn-secondary" disabled>수정</button>
+                    <button type="button" id="deleteCourseButton" class="btn-danger" disabled>삭제</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 골프장 목록 -->
+        <div class="list-card">
+            <h2>골프장 목록</h2> 
+            <!-- 골프장 정보 : https://guidegolfs.ffgolf.org/map/fr/slope -->
+            <div class="table-container">
+                <table id="golfCourseTable">
+                    <thead>
+                        <tr>
+                            <th>골프장 이름</th>
+                            <th>티박스 Gender</th>
+                            <th>티박스</th>
+                            <th>코스 레이팅</th>
+                            <th>슬로프 레이팅</th>
+                            <th>파(Par)</th>
+                            <th>수정</th>
+                            <th>삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 골프장 목록이 여기에 추가됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 골프장 데이터 파일 업로드 
+        <div class="form-card">
+            <h2>골프장 데이터 파일 업로드</h2>
+            <form id="csvForm">
+                <div class="form-group">
+                    <input type="file" id="csvGolfFile" accept=".csv">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="csvGolfRegisterButton" class="btn-primary" disabled>골프장 데이터 등록</button>
+                </div>
+            </form>
+        </div>
+    </div -->
+
+    <!-- 푸터 -->
+    <div class="footer">
+        <p>© 72회 골프 관리 시스템. All rights reserved.</p>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>
