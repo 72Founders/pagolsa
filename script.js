@@ -164,7 +164,8 @@ if (window.location.pathname.includes('login.html')) {
     sessionStorage.removeItem('isAdmin');
 } else if (window.location.pathname.includes('member-management.html') ||
            window.location.pathname.includes('golf-course.html') ||
-           window.location.pathname.includes('register-score.html')) {
+           window.location.pathname.includes('register-score.html') ||
+           window.location.pathname.includes('analytics.html')) {
     checkAdminAccess(); // 관리자 페이지는 관리자만 접근 가능
 } else {
     checkUserAccess(); // 일반 페이지는 로그인한 사용자만 접근 가능
@@ -244,8 +245,11 @@ if (document.getElementById('registerForm')) {
             };
 
             // 회원 목록에 추가
-            members.push(newMember);
-            localStorage.setItem('members', JSON.stringify(members)); // 회원 데이터 저장
+            //members.push(newMember);
+            //localStorage.setItem('members', JSON.stringify(members)); // 회원 데이터 저장
+
+            // Firestore에 회원 추가
+            await addMemberToFirestore(newMember);
 
             // 회원 선택 목록 및 테이블 업데이트
             updateMemberSelect();
@@ -268,14 +272,21 @@ if (document.getElementById('registerForm')) {
                 photo: null // 사진 없음
             };
 
-            members.push(newMember);
-            localStorage.setItem('members', JSON.stringify(members));
+            // 로컬 스토리지에 데이터 저장
+            //members.push(newMember);
+            //localStorage.setItem('members', JSON.stringify(members));
+
+            // Firestore에 회원 추가
+            await addMemberToFirestore(newMember);
+
+
             updateMemberSelect();
             updateMemberTable();
             document.getElementById('registerForm').reset();
         }
     });
 }
+
 
 
 // 회원 선택 목록 업데이트
@@ -516,8 +527,12 @@ function registerMember(event) {
 }
 
 // 회원 목록 테이블
-function updateMemberTable() {
+// function updateMemberTable() {
+async function updateMemberTable() {
     if (document.getElementById('memberTable')) {
+        // Firebase 에서 회원 목록 로딩
+        const members = await loadMembersFromFirestore();
+
         const memberTableBody = document.getElementById('memberTable').getElementsByTagName('tbody')[0];
         memberTableBody.innerHTML = '';
 
@@ -561,6 +576,21 @@ function updateMemberTable() {
         });
     }
 }
+
+async function loadMembersFromFirestore() {
+  try {
+    const querySnapshot = await db.collection('members').get();
+    const members = [];
+    querySnapshot.forEach(doc => {
+      members.push({ id: doc.id, ...doc.data() });
+    });
+    return members;
+  } catch (error) {
+    console.error('Firestore에서 회원 데이터 불러오기 중 오류 발생:', error);
+    return [];
+  }
+}
+
 
 // 회원 삭제 기능
 function deleteMember(index) {
@@ -909,11 +939,18 @@ function updateGolfCourseSelect() {
     }
 }
 
+
+document.addEventListener('DOMContentLoaded', async function () {
+    // 공통 초기화 로직
+    updateMemberTable(); // 회원 목록 테이블 업데이트
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
     // 공통 초기화 로직
     initializeCommonData(); // 공통 데이터 초기화
     updateMemberSelect(); // 회원 목록 표시
-    updateMemberTable(); // 회원 목록 테이블 업데이트
+    //updateMemberTable(); // 회원 목록 테이블 업데이트
     updateGolfCourseSelect(); // 골프장 선택 목록 업데이트
     sortGolfCoursesByName(); // 초기 골프장 목록 정렬
 
@@ -1320,6 +1357,7 @@ function createTagCloud() {
     const weeklyHandicaps = calculateWeeklyHandicap();
     const recent12WeekEnds = getRecent12WeekEnds();
     const latestWeekEnd = recent12WeekEnds[0]; // 가장 최근 일요일 날짜
+    const previousWeekEnd = recent12WeekEnds[1]; // 전주 일요일 날짜
 
     sortedMembers.forEach(member => {
         // 닉네임이 없으면 이름을 사용
@@ -1327,14 +1365,39 @@ function createTagCloud() {
 
         // 최신 핸디캡 값 가져오기
         const finalHandicap = weeklyHandicaps[member.name]?.[latestWeekEnd] || member.baseHandicap || 0;
+        const previousHandicap = weeklyHandicaps[member.name]?.[previousWeekEnd] || member.baseHandicap || 0;
 
-        // 핸디캡 값을 반올림하여 소수점 없이 표시
-        const roundedHandicap = Math.round(finalHandicap);
+        // 핸디캡 변동 계산
+        const handicapChange = Math.round(finalHandicap) - Math.round(previousHandicap);
 
         // 태그 생성
         const tag = document.createElement('div');
         tag.className = 'tag';
-        tag.textContent = `${displayName} (${roundedHandicap})`; // 반올림된 핸디캡 표시
+
+        // 핸디캡 변동에 따라 클래스 추가
+        if (handicapChange < 0) {
+            tag.classList.add('handicap-improved'); // 핸디캡이 낮아짐 (개선)
+        } else if (handicapChange > 0) {
+            tag.classList.add('handicap-worsened'); // 핸디캡이 높아짐 (악화)
+        }
+
+        // 반올림된 핸디캡 표시
+        const roundedHandicap = Math.round(finalHandicap);
+        if (handicapChange == 0) {
+            tag.textContent = `${displayName} (${roundedHandicap})`;
+        } else if (handicapChange > 0) {
+            tag.textContent = `${displayName} (${roundedHandicap}) 변동폭: +${handicapChange}`;
+        } else {
+            tag.textContent = `${displayName} (${roundedHandicap}) 변동폭: ${handicapChange}`;
+        }
+
+        // 핸디캡 변동 아이콘 추가
+        if (handicapChange !== 0) {
+            const icon = document.createElement('i');
+            icon.className = handicapChange < 0 ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
+            tag.appendChild(icon);
+        }
+
         tagCloud.appendChild(tag);
     });
 }
@@ -2097,11 +2160,12 @@ function initializeMonthSelect() {
         monthSelect.addEventListener('change', function () {
             const selectedMonth = this.value;
             renderPargolsaTop5Chart(selectedMonth);
+            renderPargolsaDetailTable(selectedMonth);
         });
     }
 }
 
-// renderPargolsaTop5Chart 함수 수정 (월을 파라미터로 받도록)
+// renderPargolsaTop5Chart (월을 파라미터로 받도록)
 function renderPargolsaTop5Chart(month = getCurrentMonth()) {
     const weeklyHandicaps = calculateHistoricalWeeklyHandicap(); // 주간 핸디캡 데이터
     const currentMonth = month; // 파라미터로 받은 월 사용
@@ -2112,6 +2176,12 @@ function renderPargolsaTop5Chart(month = getCurrentMonth()) {
         .map(score => score.date) // 날짜만 추출
         .sort((a, b) => new Date(a) - new Date(b)) // 날짜 순으로 정렬 (오름차순)
     )];
+
+    // 날짜를 MM-DD 형식으로 변환 (X축 레이블용)
+    const labels = allDates.map(date => {
+        const [year, month, day] = date.split('-'); // YYYY-MM-DD를 분리
+        return `${month}-${day}`; // MM-DD 형식으로 반환
+    });
 
     // 월파골사평균점수 계산
     const monthlyScores = calculateMonthlyPargolsaScores(scores, weeklyHandicaps, currentMonth);
@@ -2194,7 +2264,7 @@ function renderPargolsaTop5Chart(month = getCurrentMonth()) {
     const chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: allDates, // X축: 날짜
+            labels: labels, // X축: 날짜
             datasets: datasets, // Y축: 각 회원의 월파골사평균점수
         },
         options: {
@@ -2286,11 +2356,69 @@ function getRandomColor() {
 }
 
 
+// 파골사 지수 상세 테이블 렌더링
+function renderPargolsaDetailTable(month = getCurrentMonth()) {
+    const weeklyHandicaps = calculateHistoricalWeeklyHandicap(); // 주간 핸디캡 데이터
+    const currentMonth = month; // 파라미터로 받은 월 사용
+
+    // 해당월의 모든 경기 날짜 추출 (오름차순 정렬)
+    const allDates = [...new Set(scores
+        .filter(score => score.date.startsWith(currentMonth)) // 해당월 데이터만 필터링
+        .map(score => score.date) // 날짜만 추출
+        .sort((a, b) => new Date(a) - new Date(b)) // 날짜 순으로 정렬 (오름차순)
+    )];
+
+    // 월파골사평균점수 계산
+    const monthlyScores = calculateMonthlyPargolsaScores(scores, weeklyHandicaps, currentMonth);
+
+    updatePargolsaDetailTable(monthlyScores);
+}
+
+
+// 파골사 지수 상세 테이블: 선택된 월의 전체 회원 상세 데이터를 테이블에 표시하는 함수
+function updatePargolsaDetailTable(monthlyScores) {
+    const tableBody = document.getElementById("pargolsaDetailTable").getElementsByTagName("tbody")[0];
+    tableBody.innerHTML = ''; // 기존 데이터 초기화
+
+    // monthlyScores에서 데이터를 추출하여 테이블에 추가
+    const members = Object.keys(monthlyScores); // 회원 목록 가져오기
+
+    // 파골사 지수를 기준으로 정렬 (낮은 순서대로)
+    const sortedMembers = members.sort((a, b) => {
+        const scoreA = monthlyScores[a].total / monthlyScores[a].count;
+        const scoreB = monthlyScores[b].total / monthlyScores[b].count;
+        return scoreA - scoreB;
+    });
+
+    // 정렬된 회원 데이터를 테이블에 추가
+    sortedMembers.forEach((member, index) => {
+        const row = tableBody.insertRow();
+        const rankCell = row.insertCell(0);
+        const nameCell = row.insertCell(1);
+        const scoreCell = row.insertCell(2);
+        const gameCountCell = row.insertCell(3);
+
+        // 순위
+        rankCell.textContent = index + 1;
+
+        // 회원명
+        nameCell.textContent = member;
+
+        // 파골사 지수 (평균값)
+        const averageScore = (monthlyScores[member].total / monthlyScores[member].count).toFixed(2);
+        scoreCell.textContent = averageScore;
+
+        // 경기수
+        gameCountCell.textContent = monthlyScores[member].count;
+    });
+}
+
+
 
 // 파골사 랭킹 테이블
 function renderPargolsaRankingTable() {
 
-    renderPargolsaTop5Chart(); // 상위 5명 그래프 렌더링도 같이 시작
+    //renderPargolsaTop5Chart(); // 상위 5명 그래프 렌더링도 같이 시작
 
     const monthlyData = calculateMonthlyHandicapAdjustedScores();
     const tableBody = document.getElementById('pargolsaRankingTable').getElementsByTagName('tbody')[0];
@@ -2824,7 +2952,7 @@ function showMemberDetails(memberName) {
         .slice(0, Math.ceil(recent20Scores.length * 0.4)); // 상위 40% 선택
 
     // 테이블에 데이터 추가
-    memberScores.forEach(score => {
+    memberScores.forEach((score, index) => {
         const golfCourse = golfCourses.find(c => c.name === score.golfCourse);
         if (!golfCourse) {
             console.error(`골프장 정보를 찾을 수 없습니다: ${score.golfCourse}`);
@@ -2845,6 +2973,9 @@ function showMemberDetails(memberName) {
 
         const row = tableBody.insertRow();
 
+        // 번호 추가
+        row.insertCell(0).textContent = index + 1; // 번호 (1부터 시작)
+
         // 최소 경기수(10경기)를 채운 경우에만 recent-20 및 top-8 스타일 적용
         if (memberScores.length >= 10) {
             const isRecent20 = recent20Scores.some(recentScore =>
@@ -2860,13 +2991,13 @@ function showMemberDetails(memberName) {
             if (isTop8) row.classList.add('top-8');
         }
 
-        row.insertCell(0).textContent = score.date; // 경기 날짜
-        row.insertCell(1).textContent = score.golfCourse; // 골프장
-        row.insertCell(2).textContent = score.teeBox; // 티박스
-        row.insertCell(3).textContent = courseRating; // 코스 레이팅
-        row.insertCell(4).textContent = slopeRating; // 슬로프 레이팅
-        row.insertCell(5).textContent = score.score; // 점수
-        row.insertCell(6).textContent = handicapIndex.toFixed(2); // 핸디캡 지수
+        row.insertCell(1).textContent = score.date; // 경기 날짜
+        row.insertCell(2).textContent = score.golfCourse; // 골프장
+        row.insertCell(3).textContent = score.teeBox; // 티박스
+        row.insertCell(4).textContent = courseRating; // 코스 레이팅
+        row.insertCell(5).textContent = slopeRating; // 슬로프 레이팅
+        row.insertCell(6).textContent = score.score; // 점수
+        row.insertCell(7).textContent = handicapIndex.toFixed(2); // 핸디캡 지수
     });
 }
 
@@ -3126,6 +3257,490 @@ function parseCSV(csvData) {
 
 
 
+//
+// analytics.html 경기 데이터 분석 
+//
+
+
+// 경기 기록 분석 데이터 계산
+function calculateAnalyticsData(filteredScores = scores) {
+    const weeklyHandicaps = calculateWeeklyHandicap();
+    const analyticsData = [];
+
+    members.forEach(member => {
+        const memberScores = filteredScores.filter(score => score.name === member.name);
+        let firstPlaceCount = 0;
+        let topHalfCount = 0;
+
+        memberScores.forEach(score => {
+            const scoreDate = new Date(score.date);
+            const previousWeekEnd = getClosestPreviousSunday(scoreDate);
+            const previousWeekHandicap = weeklyHandicaps[member.name]?.[previousWeekEnd] || 0;
+
+            // 골프장 정보 찾기
+            const golfCourse = golfCourses.find(course => course.name === score.golfCourse);
+            if (!golfCourse) {
+                console.warn(`골프장 정보를 찾을 수 없습니다: ${score.golfCourse}`);
+                return; // 골프장 정보가 없으면 건너뜀
+            }
+
+            // 티박스 정보 찾기
+            const teeBoxInfo = golfCourse.teeBoxes.find(
+                t => t.gender === member.gender && t.teeBox === score.teeBox
+            );
+            if (!teeBoxInfo) {
+                console.warn(`티박스 정보를 찾을 수 없습니다: 골프장 ${score.golfCourse}, 성별 ${member.gender}, 티박스 ${score.teeBox}`);
+                return; // 티박스 정보가 없으면 건너뜀
+            }
+
+            // 파골사 지수 계산
+            const courseRating = teeBoxInfo.courseRating;
+            const slopeRating = teeBoxInfo.slopeRating;
+            const handicapIndex = ((score.score - courseRating) / slopeRating) * 113;
+            const pargolsaScore = handicapIndex - previousWeekHandicap;
+
+            // 같은 날짜의 다른 회원들과 비교
+            const sameDateScores = filteredScores.filter(s => s.date === score.date);
+            const pargolsaScores = sameDateScores.map(s => {
+                const course = golfCourses.find(c => c.name === s.golfCourse);
+                if (!course) {
+                    console.warn(`골프장 정보를 찾을 수 없습니다: ${s.golfCourse}`);
+                    return Infinity; // 골프장 정보가 없으면 무한대 반환
+                }
+
+                const teeBox = course.teeBoxes.find(
+                    t => t.gender === members.find(m => m.name === s.name)?.gender && t.teeBox === s.teeBox
+                );
+                if (!teeBox) {
+                    console.warn(`티박스 정보를 찾을 수 없습니다: 골프장 ${s.golfCourse}, 성별 ${members.find(m => m.name === s.name)?.gender}, 티박스 ${s.teeBox}`);
+                    return Infinity; // 티박스 정보가 없으면 무한대 반환
+                }
+
+                const rating = ((s.score - teeBox.courseRating) / teeBox.slopeRating) * 113;
+                return rating - (weeklyHandicaps[s.name]?.[previousWeekEnd] || 0);
+            });
+
+            // 1등 확인
+            if (pargolsaScore === Math.min(...pargolsaScores)) {
+                firstPlaceCount++;
+            }
+
+            // 상위 절반 확인
+            const sortedScores = pargolsaScores.sort((a, b) => a - b);
+            let halfIndex = Math.floor(sortedScores.length / 2); // 소수점 이하 버림
+
+            // 참가 인원이 짝수인 경우, 한 명을 더 뺌
+            if (sortedScores.length % 2 === 0) {
+                halfIndex -= 1; // 짝수인 경우 한 명을 더 뺌
+            }
+
+            if (pargolsaScore <= sortedScores[halfIndex - 1]) { // 상위 절반의 마지막 인덱스
+                topHalfCount++;
+            }
+        });
+
+        analyticsData.push({
+            name: member.name,
+            totalGames: memberScores.length,
+            firstPlace: firstPlaceCount,
+            topHalf: topHalfCount,
+        });
+    });
+
+    // 회원 이름으로 정렬
+    analyticsData.sort((a, b) => a.name.localeCompare(b.name));
+
+    return analyticsData;
+}
+
+
+// 날짜 필터 적용 함수
+function applyFilters() {
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+
+    // 날짜 필터링된 데이터 계산
+    const filteredScores = scores.filter(score => {
+        const scoreDate = new Date(score.date);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        return scoreDate >= start && scoreDate <= end;
+    });
+
+    // 필터링된 데이터로 분석 데이터 계산
+    const analyticsData = calculateAnalyticsData(filteredScores);
+
+    // 테이블 및 그래프 업데이트
+    updateAnalyticsTable(analyticsData);
+    updateAnalyticsCharts(analyticsData);
+    updateTopHalfRatioChart(analyticsData);
+    updateGolfCourseBarChart(filteredScores);
+}
+
+// 테이블 업데이트
+function updateAnalyticsTable(data) {
+    const tableBody = document.querySelector("#analyticsTable tbody");
+    tableBody.innerHTML = "";
+
+    data.forEach(member => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${member.name}</td>
+            <td>${member.totalGames}</td>
+            <td>${member.firstPlace}</td>
+            <td>${member.topHalf}</td>
+            <td>${((member.topHalf / member.totalGames) * 100).toFixed(1)}%</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// 그래프 업데이트
+let barChartInstance = null;
+
+function updateAnalyticsCharts(data) {
+    const labels = data.map(member => member.name.slice(-2));
+    const firstPlaceData = data.map(member => member.firstPlace);
+    const topHalfData = data.map(member => member.topHalf);
+
+    // Destroy existing charts if they exist
+    if (barChartInstance) {
+        barChartInstance.destroy();
+    }
+
+    // Create new stacked line chart
+    barChartInstance = new Chart(document.getElementById("barChart"), {
+        type: "line", // 라인 차트로 변경
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "1등 횟수",
+                    data: firstPlaceData,
+                    backgroundColor: "rgba(230, 122, 26, 0.2)", // 오렌지색 배경 (투명도 추가)
+                    borderColor: "#e67a1a", // 오렌지색 라인
+                    borderWidth: 2,
+                    fill: true, // 채우기 활성화
+                    tension: 0.4, // 곡선 형태로 라인을 부드럽게 표시
+                    pointStyle: "circle", // 포인트 스타일을 원형으로 설정
+                    pointBackgroundColor: "#e67a1a", // 포인트 배경색 (오렌지색)
+                    pointBorderColor: "#ffffff", // 포인트 테두리 색상 (흰색)
+                    pointRadius: 5, // 포인트 크기
+                    pointHoverRadius: 7, // 호버 시 포인트 크기
+                },
+                {
+                    label: "상위 40% 이상 횟수",
+                    data: topHalfData,
+                    backgroundColor: "rgba(76, 175, 80, 0.2)", // 녹색 배경 (투명도 추가)
+                    borderColor: "#4CAF50", // 녹색 라인
+                    borderWidth: 2,
+                    fill: true, // 채우기 활성화
+                    tension: 0.4, // 곡선 형태로 라인을 부드럽게 표시
+                    pointStyle: "circle", // 포인트 스타일을 원형으로 설정
+                    pointBackgroundColor: "#4CAF50", // 포인트 배경색 (녹색)
+                    pointBorderColor: "#ffffff", // 포인트 테두리 색상 (흰색)
+                    pointRadius: 5, // 포인트 크기
+                    pointHoverRadius: 7, // 호버 시 포인트 크기
+                },
+            ],
+        },
+        options: {
+            responsive: true, // 반응형으로 설정
+            maintainAspectRatio: false, // 비율 유지하지 않음
+            plugins: {
+                title: {
+                    display: true,
+                    text: "회원별 성적 상위 랭킹 횟수",
+                    font: {
+                        size: 16,
+                        family: "Poppins",
+                        weight: "bold",
+                    },
+                },
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        font: {
+                            size: 12,
+                            family: "Poppins",
+                        },
+                    },
+                },
+                tooltip: {
+                    mode: "index", // 여러 데이터셋의 툴팁을 동시에 표시
+                    intersect: false, // 마우스가 라인 위에 있을 때 툴팁 표시
+                },
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false, // x축 그리드 숨기기
+                    },
+                    ticks: {
+                        font: {
+                            family: "Poppins",
+                            size: 12,
+                        },
+                        autoSkip: true, // 레이블 자동 스킵
+                        maxRotation: 90, // 레이블 회전 각도 (세로 방향)
+                        minRotation: 0, // 최소 회전 각도
+                    },
+                },
+                y: {
+                    stacked: true, // y축 누적 설정
+                    grid: {
+                        display: false, // y축 그리드 숨기기
+                    },
+                    ticks: {
+                        font: {
+                            family: "Poppins",
+                            size: 12,
+                        },
+                    },
+                },
+            },
+            interaction: {
+                mode: "nearest", // 가장 가까운 데이터 포인트에 툴팁 표시
+                axis: "x", // x축을 기준으로 툴팁 표시
+            },
+        },
+    });
+
+    // 화면 크기 변경 시 차트 리사이즈
+    window.addEventListener("resize", () => {
+        barChartInstance.resize(); // 차트 크기 조정
+    });
+}
+
+
+let topHalfRatioChartInstance = null;
+
+function updateTopHalfRatioChart(data) {
+    const labels = data.map(member => member.name.slice(-2));
+    const topHalfRatioData = data.map(member => ((member.topHalf / member.totalGames) * 100).toFixed(1));
+
+    // Destroy existing chart if it exists
+    if (topHalfRatioChartInstance) {
+        topHalfRatioChartInstance.destroy();
+    }
+
+    // Create new line chart
+    topHalfRatioChartInstance = new Chart(document.getElementById("topHalfRatioChart"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "상위 40% 이상 비율 (%)",
+                data: topHalfRatioData,
+                borderColor: "#4CAF50", // 녹색 계열 (어두운 초록색)
+                backgroundColor: "rgba(76, 175, 80, 0.2)", // 연한 초록색 (투명도 추가)
+                borderWidth: 2,
+                pointBackgroundColor: "#4CAF50", // 포인트 배경색 (어두운 초록색)
+                pointBorderColor: "#ffffff", // 포인트 테두리 색상 (흰색)
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                fill: true,
+                tension: 0.4, // 곡선 형태로 라인을 부드럽게 표시
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: "회원별 상위 랭킹 40% 이상 비율 (%)",
+                    font: {
+                        size: 16,
+                        family: "Poppins",
+                        weight: "bold",
+                    },
+                },
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        font: {
+                            size: 12,
+                            family: "Poppins",
+                        },
+                    },
+                },
+                tooltip: {
+                    mode: "index",
+                    intersect: false,
+                },
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false,
+                    },
+                    ticks: {
+                        font: {
+                            family: "Poppins",
+                            size: 12,
+                        },
+                        autoSkip: true,
+                        maxRotation: 90,
+                        minRotation: 0,
+                    },
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: "상위 절반 이상 비율 (%)",
+                        font: {
+                            size: 12,
+                            family: "Poppins",
+                        },
+                    },
+                    grid: {
+                        display: false,
+                    },
+                    ticks: {
+                        font: {
+                            family: "Poppins",
+                            size: 12,
+                        },
+                    },
+                },
+            },
+            interaction: {
+                mode: "nearest",
+                axis: "x",
+            },
+        },
+    });
+}
+
+
+// 골프장별 경기 횟수 계산 함수
+function calculateGolfCourseCounts(filteredScores = scores) {
+    const golfCourseCounts = {};
+
+    // 날짜와 골프장의 조합을 저장할 Set
+    const uniqueCombinations = new Set();
+
+    filteredScores.forEach(score => {
+        const key = `${score.date}-${score.golfCourse}`; // 날짜와 골프장의 조합
+        if (!uniqueCombinations.has(key)) {
+            uniqueCombinations.add(key); // 고유한 조합만 저장
+
+            // 골프장별 경기 횟수 카운트
+            if (golfCourseCounts[score.golfCourse]) {
+                golfCourseCounts[score.golfCourse]++;
+            } else {
+                golfCourseCounts[score.golfCourse] = 1;
+            }
+        }
+    });
+
+    // 골프장 이름순으로 정렬
+    const sortedGolfCourses = Object.keys(golfCourseCounts).sort((a, b) => a.localeCompare(b));
+    const sortedCounts = {};
+    sortedGolfCourses.forEach(golfCourse => {
+        sortedCounts[golfCourse] = golfCourseCounts[golfCourse];
+    });
+
+    return sortedCounts;
+}
+
+// 녹색 계열 그라데이션 색상 생성 함수
+function getGreenGradient(ctx, chartArea) {
+    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.6)'); // 연한 녹색
+    gradient.addColorStop(1, 'rgba(26, 188, 156, 0.6)'); // 더 연한 녹색
+    return gradient;
+}
+
+// 골프장별 경기 횟수 차트 업데이트 함수
+function updateGolfCourseBarChart(filteredScores) {
+    const golfCourseCounts = calculateGolfCourseCounts(filteredScores);
+    const labels = Object.keys(golfCourseCounts);
+    const data = Object.values(golfCourseCounts);
+
+    const ctx = document.getElementById('golfCourseBarChart').getContext('2d');
+
+    // 기존 차트가 있으면 제거
+    if (window.golfCourseBarChart && typeof window.golfCourseBarChart.destroy === 'function') {
+        window.golfCourseBarChart.destroy();
+    }
+
+    // 새로운 차트 생성
+    window.golfCourseBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '경기 횟수',
+                data: data,
+                backgroundColor: function (context) {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return null; // 차트 영역이 없을 경우
+                    return getGreenGradient(ctx, chartArea); // 녹색 그라데이션 적용
+                },
+                borderColor: 'rgba(76, 175, 80, 1)', // 녹색 테두리
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '골프장별 경기 횟수',
+                    font: {
+                        size: 16,
+                        family: "Poppins",
+                        weight: 'bold'
+                    }
+                },
+                legend: {
+                    display: false // 레전드 숨기기
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: '골프장',
+                        font: {
+                            size: 12,
+                            family: "Poppins"
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '경기 횟수',
+                        font: {
+                            size: 12,
+                            family: "Poppins"
+                        }
+                    },
+                    grid: {
+                        color: '#E0E0E0'
+                    },
+                    ticks: {
+                        stepSize: 1, // y축 간격
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
 
 
 //
@@ -3299,7 +3914,7 @@ function parseBackupCSV(csvData) {
 }
 
 
-function uploadData(csvData, type) {
+function uploadData-original(csvData, type) {
     const parsedData = parseBackupCSV(csvData);
     const duplicates = []; // 중복된 데이터를 저장할 배열
 
@@ -3413,6 +4028,52 @@ function uploadData(csvData, type) {
     alert('데이터 업로드가 완료되었습니다. 중복된 데이터는 로그 파일로 저장되었습니다.');
 }
 
+// Backup 된 CSV 파일을 Firebase 에 업로드
+async function uploadData(csvData, type) {
+  const parsedData = parseBackupCSV(csvData);
+  const duplicates = []; // 중복된 데이터를 저장할 배열
+
+  if (type === 'members') {
+    for (const row of parsedData) {
+      // 중복 확인: Firestore에서 동일한 이름과 성별의 회원이 있는지 확인
+      const querySnapshot = await db.collection('members')
+        .where('name', '==', row['Name'])
+        .where('gender', '==', row['Gender'])
+        .get();
+
+      if (querySnapshot.empty) {
+        // 중복이 아니면 Firestore에 회원 데이터 추가
+        const newMember = {
+          name: row['Name'],
+          gender: row['Gender'],
+          baseHandicap: parseFloat(row['Base Handicap']),
+          senior: row['Senior'] === 'true',
+          photo: row['Photo'] || null // 사진이 없으면 null
+        };
+        await addCSVMemberToFirestore(newMember);
+      } else {
+        duplicates.push(row); // 중복 데이터 저장
+      }
+    }
+
+    // 중복 데이터가 있으면 로그 파일로 저장
+    if (duplicates.length > 0) {
+      const duplicatesCSV = convertToCSV(duplicates);
+      const blob = new Blob([duplicatesCSV], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `duplicates_members_${getFormattedDate()}.csv`;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    alert('회원 데이터 업로드가 완료되었습니다. 중복된 데이터는 로그 파일로 저장되었습니다.');
+  } else {
+    alert('잘못된 데이터 타입입니다. 회원 데이터를 업로드하려면 타입을 "members"로 지정하세요.');
+  }
+}
 
 
 
@@ -3477,13 +4138,57 @@ function scheduleBackup() {
 
 
 
+
+//
+// Firebase DB Integration
+//
+async function addCSVMemberToFirestore(member) {
+  try {
+    // Firestore의 'members' 컬렉션에 회원 데이터 추가
+    await db.collection('members').add(member);
+    console.log('회원이 Firestore에 추가되었습니다:', member.name);
+  } catch (error) {
+    console.error('Firestore에 회원 추가 중 오류 발생:', error);
+  }
+}
+
+
+// Firestore에 회원 추가 함수
+async function addMemberToFirestore(member) {
+    try {
+        const docRef = await db.collection('members').add(member);
+        console.log('회원 추가 성공:', docRef.id);
+    } catch (error) {
+        console.error('회원 추가 중 오류 발생:', error);
+    }
+}
+
+// 모든 회원 데이터를 Firestore에 추가하는 함수
+async function addAllMembersToFirestore() {
+    for (const member of members) {
+        await addMemberToFirestore(member);
+    }
+    alert('모든 회원 데이터가 Firestore에 추가되었습니다.');
+}
+
+
+
+
+
+
+
+
+
+
+
 // DOM이 완전히 로드된 후에 실행
 document.addEventListener('DOMContentLoaded', function () {
     if (window.location.pathname.includes('pargolsa-league.html')) {
         // initializePargolsaPage(); // 파골사 페이지 초기화
         initializeMonthSelect(); // 월 선택 드롭다운 초기화
         renderPargolsaTop5Chart(getCurrentMonth()); // 현재 월로 그래프 초기 렌더링
-        renderPargolsaRankingTable(); // 2025년 파골사 월별 핸디 대비 오버파 평균
+        renderPargolsaDetailTable(getCurrentMonth()); // 현재 월로 테이블 초기 렌더링
+        //renderPargolsaRankingTable(); // 2025년 파골사 월별 핸디 대비 오버파 평균
     } else if (window.location.pathname.includes('index.html')) {
         createTagCloud(); // 젠체 회원 핸디캡 - 태그 스타일
     } else if (window.location.pathname.includes('monthly-scores.html')) {
@@ -3512,10 +4217,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 exportAllData(); // 데이터 백업 함수 호출
             });
         }
+    } else if (window.location.pathname.includes('analytics.html')) {
+        const analyticsData = calculateAnalyticsData();
+        updateAnalyticsTable(analyticsData);
+        updateAnalyticsCharts(analyticsData);
+        updateTopHalfRatioChart(analyticsData);
+        updateGolfCourseBarChart(scores);
     }
 });
-
-
 
 
 
