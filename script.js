@@ -210,8 +210,6 @@ function initializeCommonData() {
 initializeCommonData();
 
 
-
-
 //
 // member-management.html
 // 회원 등록
@@ -219,11 +217,11 @@ initializeCommonData();
 
 // 회원 등록 폼 제출 시
 if (document.getElementById('registerForm')) {
-    document.getElementById('registerForm').addEventListener('submit', function (event) {
+    document.getElementById('registerForm').addEventListener('submit', async function (event) {
         event.preventDefault();
 
         const newName = document.getElementById('newName').value;
-        const nickname = document.getElementById('nickName').value; 
+        const nickname = document.getElementById('nickName').value;
         const memberGender = document.getElementById('memberGender').value;
         const baseHandicap = document.getElementById('baseHandicap').value;
         const memberSenior = document.getElementById('memberSenior').checked;
@@ -231,7 +229,7 @@ if (document.getElementById('registerForm')) {
 
         // 사진을 Base64로 변환
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = async function (e) {
             const photoBase64 = e.target.result;
 
             // 회원 데이터 객체 생성
@@ -239,149 +237,173 @@ if (document.getElementById('registerForm')) {
                 name: newName,
                 nickname: nickname,
                 gender: memberGender,
-                baseHandicap: baseHandicap ? parseFloat(baseHandicap) : null, // 기준 핸디캡 추가
+                baseHandicap: baseHandicap ? parseFloat(baseHandicap) : null,
                 senior: memberSenior,
-                photo: photoBase64 // 사진을 Base64로 저장
+                photo: photoBase64
             };
 
-            // 회원 목록에 추가
-            //members.push(newMember);
-            //localStorage.setItem('members', JSON.stringify(members)); // 회원 데이터 저장
-
             // Firestore에 회원 추가
-            await addMemberToFirestore(newMember);
+            try {
+                await addMemberToFirestore(newMember);
+                alert('회원이 성공적으로 등록되었습니다.');
 
-            // 회원 선택 목록 및 테이블 업데이트
-            updateMemberSelect();
-            updateMemberTable();
+                // 회원 선택 목록 및 테이블 업데이트
+                updateMemberSelect();
+                updateMemberTable();
 
-            // 폼 초기화
-            document.getElementById('registerForm').reset();
+                // 폼 초기화
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                alert('회원 등록 중 오류가 발생했습니다.');
+            }
         };
 
         if (memberPhoto) {
-            reader.readAsDataURL(memberPhoto); // 사진을 Base64로 변환
+            reader.readAsDataURL(memberPhoto);
         } else {
             // 사진이 없을 경우
             const newMember = {
                 name: newName,
                 nickname: nickname,
                 gender: memberGender,
-                baseHandicap: baseHandicap ? parseFloat(baseHandicap) : null, // 기준 핸디캡 추가
+                baseHandicap: baseHandicap ? parseFloat(baseHandicap) : null,
                 senior: memberSenior,
-                photo: null // 사진 없음
+                photo: null
             };
 
-            // 로컬 스토리지에 데이터 저장
-            //members.push(newMember);
-            //localStorage.setItem('members', JSON.stringify(members));
-
             // Firestore에 회원 추가
-            await addMemberToFirestore(newMember);
+            try {
+                await addMemberToFirestore(newMember);
+                alert('회원이 성공적으로 등록되었습니다.');
 
+                // 회원 선택 목록 및 테이블 업데이트
+                updateMemberSelect();
+                updateMemberTable();
 
-            updateMemberSelect();
-            updateMemberTable();
-            document.getElementById('registerForm').reset();
+                // 폼 초기화
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                alert('회원 등록 중 오류가 발생했습니다.');
+            }
         }
     });
 }
 
 
-
 // 회원 선택 목록 업데이트
-function updateMemberSelect() {
+async function updateMemberSelect() {
     if (document.getElementById('scoreInputs')) {
         const scoreInputs = document.getElementById('scoreInputs');
         scoreInputs.innerHTML = '';
 
-        // 회원 이름으로 오름차순 정렬
-        const sortedMembers = members.slice().sort((a, b) => a.name.localeCompare(b.name));
+        // Firestore에서 회원 목록 조회
+        try {
+            const querySnapshot = await db.collection('members').get();
+            const members = [];
+            querySnapshot.forEach(doc => {
+                members.push({ id: doc.id, ...doc.data() });
+            });
 
-        // 정렬된 회원 목록으로 카드 생성
-        sortedMembers.forEach(member => {
-            const memberCard = document.createElement('div');
-            memberCard.className = 'member-card';
+            // 회원 이름으로 오름차순 정렬
+            const sortedMembers = members.slice().sort((a, b) => a.name.localeCompare(b.name));
 
-            // 회원 사진 (기본 이미지 또는 업로드된 이미지)
-            const memberPhotoContainer = document.createElement('div');
-            if (member.photo) {
-                const memberPhoto = document.createElement('img');
-                memberPhoto.src = member.photo;
-                memberPhoto.alt = member.name;
-                memberPhotoContainer.appendChild(memberPhoto);
-            } else {
-                // 기본 프로필 이미지 (인물 아이콘)
-                const defaultProfile = document.createElement('div');
-                defaultProfile.className = 'default-profile';
-                const profileIcon = document.createElement('i');
-                profileIcon.className = 'fas fa-user-astronaut'; // Font Awesome의 사용자 아이콘
-                defaultProfile.appendChild(profileIcon);
-                memberPhotoContainer.appendChild(defaultProfile);
-            }
+            // 정렬된 회원 목록으로 카드 생성
+            sortedMembers.forEach(member => {
+                const memberCard = document.createElement('div');
+                memberCard.className = 'member-card';
 
-            // 회원 정보 컨테이너
-            const memberInfo = document.createElement('div');
-            memberInfo.className = 'member-info';
+                // 회원 사진 (기본 이미지 또는 업로드된 이미지)
+                const memberPhotoContainer = document.createElement('div');
+                if (member.photo) {
+                    const memberPhoto = document.createElement('img');
+                    memberPhoto.src = member.photo;
+                    memberPhoto.alt = member.name;
+                    memberPhotoContainer.appendChild(memberPhoto);
+                } else {
+                    // 기본 프로필 이미지 (인물 아이콘)
+                    const defaultProfile = document.createElement('div');
+                    defaultProfile.className = 'default-profile';
+                    const profileIcon = document.createElement('i');
+                    profileIcon.className = 'fas fa-user-astronaut'; // Font Awesome의 사용자 아이콘
+                    defaultProfile.appendChild(profileIcon);
+                    memberPhotoContainer.appendChild(defaultProfile);
+                }
 
-            // 회원 이름
-            const memberName = document.createElement('h3');
-            memberName.textContent = member.name;
+                // 회원 정보 컨테이너
+                const memberInfo = document.createElement('div');
+                memberInfo.className = 'member-info';
 
-            // Tee Box 선택 필드
-            const teeBoxSelect = document.createElement('select');
-            teeBoxSelect.id = `teeBox-${member.name}`;
-            teeBoxSelect.dataset.member = member.name;
-            teeBoxSelect.innerHTML = `
-                <option value="Black">Black</option>
-                <option value="White">White</option>
-                <option value="Yellow">Yellow</option>
-                <option value="Blue">Blue</option>
-                <option value="Red">Red</option>
-            `;
+                // 회원 이름
+                const memberName = document.createElement('h3');
+                memberName.textContent = member.name;
 
-            // 회원 정보에 따라 Tee Box 기본값 설정
-            if (member.senior) {
-                teeBoxSelect.value = 'Blue'; // Senior인 경우 Blue
-            } else if (member.gender === '여성') {
-                teeBoxSelect.value = 'Red'; // 여성인 경우 Red
-            } else {
-                teeBoxSelect.value = 'Yellow'; // 남성인 경우 Yellow
-            }
+                // Tee Box 선택 필드
+                const teeBoxSelect = document.createElement('select');
+                teeBoxSelect.id = `teeBox-${member.id}`; // 회원 ID를 사용하여 고유 ID 생성
+                teeBoxSelect.dataset.member = member.id;
+                teeBoxSelect.innerHTML = `
+                    <option value="Black">Black</option>
+                    <option value="White">White</option>
+                    <option value="Yellow">Yellow</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Red">Red</option>
+                `;
 
-            // 점수 입력 필드
-            const scoreInput = document.createElement('input');
-            scoreInput.type = 'number';
-            scoreInput.id = member.name;
-            scoreInput.dataset.member = member.name;
-            scoreInput.min = 60;
-            scoreInput.max = 144;
+                // 회원 정보에 따라 Tee Box 기본값 설정
+                if (member.senior) {
+                    teeBoxSelect.value = 'Blue'; // Senior인 경우 Blue
+                } else if (member.gender === '여성') {
+                    teeBoxSelect.value = 'Red'; // 여성인 경우 Red
+                } else {
+                    teeBoxSelect.value = 'Yellow'; // 남성인 경우 Yellow
+                }
 
-            // 점수 입력 필드에 이벤트 리스너 등록
-            scoreInput.addEventListener('input', checkScoreInputs);
+                // 점수 입력 필드
+                const scoreInput = document.createElement('input');
+                scoreInput.type = 'number';
+                scoreInput.id = member.id; // 회원 ID를 사용하여 고유 ID 생성
+                scoreInput.dataset.member = member.id;
+                scoreInput.min = 60;
+                scoreInput.max = 144;
 
-            // 회원 정보 컨테이너에 이름, 성별, Senior 정보, 점수 입력 필드 추가
-            memberInfo.appendChild(memberName);
-            memberInfo.appendChild(teeBoxSelect);
-            memberInfo.appendChild(scoreInput);
+                // 점수 입력 필드에 이벤트 리스너 등록
+                scoreInput.addEventListener('input', checkScoreInputs);
 
-            // 회원 카드에 사진과 정보 컨테이너 추가
-            memberCard.appendChild(memberPhotoContainer);
-            memberCard.appendChild(memberInfo);
+                // 회원 정보 컨테이너에 이름, 성별, Senior 정보, 점수 입력 필드 추가
+                memberInfo.appendChild(memberName);
+                memberInfo.appendChild(teeBoxSelect);
+                memberInfo.appendChild(scoreInput);
 
-            // 회원 카드를 그리드에 추가
-            scoreInputs.appendChild(memberCard);
-        });
+                // 회원 카드에 사진과 정보 컨테이너 추가
+                memberCard.appendChild(memberPhotoContainer);
+                memberCard.appendChild(memberInfo);
 
-        // 점수 등록 버튼 상태 초기화
-        checkScoreInputs();
+                // 회원 카드를 그리드에 추가
+                scoreInputs.appendChild(memberCard);
+            });
+
+            // 점수 등록 버튼 상태 초기화
+            checkScoreInputs();
+        } catch (error) {
+            console.error('회원 목록 불러오기 중 오류 발생:', error);
+            alert('회원 목록을 불러오는 중 오류가 발생했습니다.');
+        }
     }
 }
 
 
 // 회원 정보 수정 기능
-function editMember(index) {
-    const member = members[index];
+async function editMember(memberId) {
+    // Firestore에서 회원 정보 조회
+    const memberRef = db.collection('members').doc(memberId);
+    const memberDoc = await memberRef.get();
+
+    if (!memberDoc.exists) {
+        alert('회원 정보를 찾을 수 없습니다.');
+        return;
+    }
+
+    const member = memberDoc.data();
 
     // 폼에 기존 데이터 채우기
     document.getElementById('newName').value = member.name;
@@ -398,11 +420,11 @@ function editMember(index) {
     registerButton.replaceWith(registerButton.cloneNode(true)); // 버튼을 복제하여 기존 이벤트 리스너 제거
     const newRegisterButton = document.querySelector('#registerForm button[type="submit"]');
 
-    // 새로운 이벤트 리스너 등록
-    newRegisterButton.addEventListener('click', function (event) {
+    // 새로운 이벤트 리스너 등록 (수정 완료)
+    newRegisterButton.addEventListener('click', async function (event) {
         event.preventDefault();
 
-        // 수정된 데이터 저장
+        // 수정된 데이터 가져오기
         const updatedName = document.getElementById('newName').value;
         const updatedNickName = document.getElementById('nickName').value;
         const updatedGender = document.getElementById('memberGender').value;
@@ -410,73 +432,53 @@ function editMember(index) {
         const updatedSenior = document.getElementById('memberSenior').checked;
         const updatedPhoto = document.getElementById('memberPhoto').files[0];
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const photoBase64 = e.target.result;
-
-            // 회원 데이터 업데이트
-            members[index] = {
-                name: updatedName,
-                nickname: updatedNickName,
-                gender: updatedGender,
-                baseHandicap: updatedBaseHandicap ? parseFloat(updatedBaseHandicap) : null, // baseHandicap 업데이트
-                senior: updatedSenior,
-                photo: photoBase64
-            };
-
-            // 로컬 스토리지에 저장
-            localStorage.setItem('members', JSON.stringify(members));
-
-            // 회원 선택 목록 및 테이블 업데이트
-            updateMemberSelect();
-            updateMemberTable();
-
-            // 폼 초기화 및 등록 모드로 복귀
-            document.getElementById('registerForm').reset();
-            newRegisterButton.textContent = '회원 등록';
-
-            // 이벤트 리스너 다시 등록
-            newRegisterButton.removeEventListener('click', arguments.callee); // 현재 이벤트 리스너 제거
-            newRegisterButton.addEventListener('click', registerMember); // 등록 모드로 복귀
-
-            alert('회원 정보가 수정되었습니다.');
-        };
-
+        // 사진을 Base64로 변환 (선택 사항)
+        let photoBase64 = member.photo; // 기존 사진 유지
         if (updatedPhoto) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                photoBase64 = e.target.result;
+                updateFirestore(); // 사진 변환 후 Firestore 업데이트
+            };
             reader.readAsDataURL(updatedPhoto);
         } else {
-            // 사진이 없을 경우 기존 사진 유지
-            members[index] = {
-                name: updatedName,
-                nickname: updatedNickName,
-                gender: updatedGender,
-                baseHandicap: updatedBaseHandicap ? parseFloat(updatedBaseHandicap) : null, // baseHandicap 업데이트
-                senior: updatedSenior,
-                photo: member.photo // 기존 사진 유지
-            };
+            updateFirestore(); // 사진이 없을 경우 바로 Firestore 업데이트
+        }
 
-            // 로컬 스토리지에 저장
-            localStorage.setItem('members', JSON.stringify(members));
+        // Firestore에 데이터 업데이트
+        async function updateFirestore() {
+            try {
+                await memberRef.update({
+                    name: updatedName,
+                    nickname: updatedNickName,
+                    gender: updatedGender,
+                    baseHandicap: updatedBaseHandicap ? parseFloat(updatedBaseHandicap) : null, // baseHandicap 업데이트
+                    senior: updatedSenior,
+                    photo: photoBase64 // 사진 업데이트
+                });
 
-            // 회원 선택 목록 및 테이블 업데이트
-            updateMemberSelect();
-            updateMemberTable();
+                alert('회원 정보가 수정되었습니다.');
 
-            // 폼 초기화 및 등록 모드로 복귀
-            document.getElementById('registerForm').reset();
-            newRegisterButton.textContent = '회원 등록';
+                // 회원 선택 목록 및 테이블 업데이트
+                await updateMemberTable();
 
-            // 이벤트 리스너 다시 등록
-            newRegisterButton.removeEventListener('click', arguments.callee); // 현재 이벤트 리스너 제거
-            newRegisterButton.addEventListener('click', registerMember); // 등록 모드로 복귀
+                // 폼 초기화 및 등록 모드로 복귀
+                document.getElementById('registerForm').reset();
+                newRegisterButton.textContent = '회원 등록';
 
-            alert('회원 정보가 수정되었습니다.');
+                // 이벤트 리스너 다시 등록 (등록 모드로 복귀)
+                newRegisterButton.removeEventListener('click', arguments.callee); // 현재 이벤트 리스너 제거
+                newRegisterButton.addEventListener('click', registerMember); // 등록 모드로 복귀
+            } catch (error) {
+                console.error('회원 정보 수정 중 오류 발생:', error);
+                alert('회원 정보 수정 중 오류가 발생했습니다.');
+            }
         }
     });
 }
 
 // 회원 등록 폼 제출 시 기본 동작
-function registerMember(event) {
+async function registerMember(event) {
     event.preventDefault();
 
     const newName = document.getElementById('newName').value;
@@ -499,11 +501,26 @@ function registerMember(event) {
             photo: photoBase64
         };
 
-        members.push(newMember);
-        localStorage.setItem('members', JSON.stringify(members));
-        updateMemberSelect();
-        updateMemberTable();
-        document.getElementById('registerForm').reset();
+        //members.push(newMember);
+        //localStorage.setItem('members', JSON.stringify(members));
+        try {
+            // Firestore에 회원 추가
+            const docRef = await db.collection('members').add(newMember);
+            console.log('회원 추가 성공:', docRef.id);
+
+            // 성공 메시지 표시
+            alert('회원이 성공적으로 등록되었습니다.');
+
+            // 폼 초기화
+            document.getElementById('registerForm').reset();
+
+            // 회원 목록 테이블 업데이트
+            await updateMemberTable();
+            await updateMemberSelect();
+        } catch (error) {
+            console.error('회원 등록 중 오류 발생:', error);
+            alert('회원 등록 중 오류가 발생했습니다.');
+        }
     };
 
     if (memberPhoto) {
@@ -518,11 +535,26 @@ function registerMember(event) {
             photo: null
         };
 
-        members.push(newMember);
-        localStorage.setItem('members', JSON.stringify(members));
-        updateMemberSelect();
-        updateMemberTable();
-        document.getElementById('registerForm').reset();
+        //members.push(newMember);
+        //localStorage.setItem('members', JSON.stringify(members));
+        try {
+            // Firestore에 회원 추가
+            const docRef = await db.collection('members').add(newMember);
+            console.log('회원 추가 성공:', docRef.id);
+
+            // 성공 메시지 표시
+            alert('회원이 성공적으로 등록되었습니다.');
+
+            // 폼 초기화
+            document.getElementById('registerForm').reset();
+
+            // 회원 목록 테이블 업데이트
+            await updateMemberTable();
+            await updateMemberSelect();
+        } catch (error) {
+            console.error('회원 등록 중 오류 발생:', error);
+            alert('회원 등록 중 오류가 발생했습니다.');
+        }
     }
 }
 
@@ -577,32 +609,37 @@ async function updateMemberTable() {
     }
 }
 
+// Firestore에서 회원 데이터 불러오기
 async function loadMembersFromFirestore() {
-  try {
-    const querySnapshot = await db.collection('members').get();
-    const members = [];
-    querySnapshot.forEach(doc => {
-      members.push({ id: doc.id, ...doc.data() });
-    });
-    return members;
-  } catch (error) {
-    console.error('Firestore에서 회원 데이터 불러오기 중 오류 발생:', error);
-    return [];
-  }
+    try {
+        const querySnapshot = await db.collection('members').get();
+        const members = [];
+        querySnapshot.forEach(doc => {
+            members.push({ id: doc.id, ...doc.data() });
+        });
+        return members;
+    } catch (error) {
+        console.error('Firestore에서 회원 데이터 불러오기 중 오류 발생:', error);
+        return [];
+    }
 }
 
 
-// 회원 삭제 기능
-function deleteMember(index) {
+async function deleteMember(memberId) {
     const isConfirmed = confirm('정말로 이 회원을 삭제하시겠습니까?');
     if (isConfirmed) {
-        members.splice(index, 1); // 해당 인덱스의 회원 삭제
-        localStorage.setItem('members', JSON.stringify(members)); // 로컬 스토리지 업데이트
+        try {
+            // Firestore에서 회원 문서 삭제
+            await db.collection('members').doc(memberId).delete();
+            alert('회원이 삭제되었습니다.');
 
-        // 회원 선택 목록 및 테이블 업데이트
-        updateMemberSelect();
-        updateMemberTable();
-        alert('회원이 삭제되었습니다.');
+            // 회원 선택 목록 및 테이블 업데이트
+            await updateMemberTable();
+            await updateMemberSelect();
+        } catch (error) {
+            console.error('회원 삭제 중 오류 발생:', error);
+            alert('회원 삭제 중 오류가 발생했습니다.');
+        }
     }
 }
 
@@ -942,14 +979,15 @@ function updateGolfCourseSelect() {
 
 document.addEventListener('DOMContentLoaded', async function () {
     // 공통 초기화 로직
-    updateMemberTable(); // 회원 목록 테이블 업데이트
+    await updateMemberTable(); // 회원 목록 테이블 업데이트
+    await updateMemberSelect(); // 회원 목록 표시
 }
 
 
 document.addEventListener('DOMContentLoaded', function () {
     // 공통 초기화 로직
     initializeCommonData(); // 공통 데이터 초기화
-    updateMemberSelect(); // 회원 목록 표시
+    //updateMemberSelect(); // 회원 목록 표시
     //updateMemberTable(); // 회원 목록 테이블 업데이트
     updateGolfCourseSelect(); // 골프장 선택 목록 업데이트
     sortGolfCoursesByName(); // 초기 골프장 목록 정렬
@@ -4158,8 +4196,10 @@ async function addMemberToFirestore(member) {
     try {
         const docRef = await db.collection('members').add(member);
         console.log('회원 추가 성공:', docRef.id);
+        return docRef.id; // 추가된 문서 ID 반환
     } catch (error) {
         console.error('회원 추가 중 오류 발생:', error);
+        throw error; // 오류를 다시 던져서 호출한 곳에서 처리할 수 있도록 함
     }
 }
 

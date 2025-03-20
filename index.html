@@ -19,6 +19,7 @@
             <a href="member-detail-score.html">회원별 기록</a>  
             <a href="pargolsa-league.html">파골사 리그</a>
             <a href="weekly-handicap-chart.html">12주 핸디캡</a>
+            <a href="analytics.html">Analytics</a>
         </div>
     </div>
 
@@ -78,9 +79,7 @@
 
         <!-- 핸디캡 표시 : 태그 클라우드 -->
         <h2>전체 회원 핸디캡</h2>
-            <div class="handicap-tag-cloud"></div>
-
-    </div>
+        <div class="handicap-tag-cloud"></div>
     </div>
 
     <!-- 푸터 -->
@@ -90,6 +89,36 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDK -->
+    <!-- Firebase SDK (ES Modules) -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+
+      // Firebase 구성 설정
+      const firebaseConfig = {
+        apiKey: "AIzaSyA5RYph1bPDy-n7NhSuED5iTftgsJ4gjp4",
+        authDomain: "golf-paris.firebaseapp.com",
+        projectId: "golf-paris",
+        storageBucket: "golf-paris.firebasestorage.app",
+        messagingSenderId: "945941592647",
+        appId: "1:945941592647:web:7285ffa491232fee82cf62",
+        measurementId: "G-4BVYCB92VX"
+      };
+
+      // Firebase 초기화
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+
+      // 전역 변수로 설정 (필요한 경우)
+      window.app = app;
+      window.db = db;
+      window.auth = auth;
+    </script>
     <!-- Custom Script -->
     <script src="script.js"></script>
 </body>
